@@ -5,7 +5,7 @@ import unocssCSSPlugin from '../dist/index.mjs';
 export default defineConfig({
   plugins: [
     vue(),
-    unocssCSSPlugin({ build: true }),
+    unocssCSSPlugin({ mode: 'build' })
   ],
   build: {
     outDir: 'dist-example'

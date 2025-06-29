@@ -4,6 +4,8 @@
         Hello from Vue!
     </div>
   </div>
+  <!-- UnoCSS test -->
+  <div class="bg-red-500 p-4 text-white rounded-xl m-4">UnoCSS test</div>
 </template>
 
 <style lang="scss" scoped>

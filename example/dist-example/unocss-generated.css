@@ -1,0 +1,20 @@
+/* layer: default */
+.m-25px{margin:25px;}
+.m-281px{margin:281px;}
+.h-200px{height:200px;}
+.w-100px{width:100px;}
+.flex{display:flex;}
+.items-center{align-items:center;}
+.justify-center{justify-content:center;}
+.border-2{border-width:2px;}
+.border-\[\#333\]{--un-border-opacity:1;border-color:rgb(51 51 51 / var(--un-border-opacity));}
+.rounded-12px{border-radius:12px;}
+.rounded-4px{border-radius:4px;}
+.rounded-8px{border-radius:8px;}
+.border-solid{border-style:solid;}
+.p-10px{padding:10px;}
+.p-15px{padding:15px;}
+.text-center{text-align:center;}
+.text-16px{font-size:16px;}
+.color-green-500{--un-text-opacity:1;color:rgb(34 197 94 / var(--un-text-opacity));}
+.font-bold{font-weight:700;}
