@@ -1,0 +1,1 @@
+{"version":3,"file":"html-processor.d.ts","sourceRoot":"","sources":["../src/html-processor.ts"],"names":[],"mappings":"AAEA,qBAAa,aAAa;IAClB,OAAO,CAAC,IAAI,EAAE,MAAM,EAAE,EAAE,EAAE,MAAM,EAAE,iBAAiB,EAAE,GAAG,CAAC,MAAM,EAAE,MAAM,CAAC,GAAG,OAAO,CAAC,MAAM,CAAC;YAkClF,WAAW;IAmCzB,UAAU,CAAC,IAAI,EAAE,MAAM,EAAE,WAAW,EAAE,MAAM,GAAG,MAAM;CA6BtD"}

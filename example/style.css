@@ -1,0 +1,23 @@
+.example {
+  background-color: #d07f44;
+  padding: 10px;
+  margin: 281px;
+  border-radius: 8px;
+  display: flex;
+  font-size: 16px;
+  width: 100px;
+  justify-content: center;
+  align-items: center;
+}
+
+.example__item {
+  color: green;
+  width: 100px;
+  height: 200px;
+  background-image: url('https://picsum.photos/200');
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  border: 2px solid #333;
+  border-radius: 4px;
+} 

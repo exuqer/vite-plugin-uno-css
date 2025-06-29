@@ -1,0 +1,1 @@
+{"version":3,"file":"vue-processor.d.ts","sourceRoot":"","sources":["../src/vue-processor.ts"],"names":[],"mappings":"AAIA,qBAAa,YAAY;IACjB,OAAO,CAAC,IAAI,EAAE,MAAM,EAAE,EAAE,EAAE,MAAM,EAAE,iBAAiB,EAAE,GAAG,CAAC,MAAM,EAAE,MAAM,CAAC,GAAG,OAAO,CAAC,MAAM,CAAC;YAsDlF,eAAe;YAoDf,wBAAwB;YAoBxB,cAAc;YAyBd,6BAA6B;YAgB7B,sBAAsB;YAuBtB,mCAAmC;CAmBlD"}
