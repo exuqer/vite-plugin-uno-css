@@ -4,7 +4,6 @@ interface PluginOptions {
     theme?: any;
     shortcuts?: any;
     rules?: any[];
-    mode?: 'auto' | 'dev' | 'build' | ('dev' | 'build')[];
     dev?: boolean;
 }
 export declare function UnoCSSPlugin(options?: PluginOptions): Plugin;

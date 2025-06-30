@@ -2,8 +2,8 @@
 // Единый маппинг UnoCSS свойств
 export const UNO_PROPERTY_MAP = {
     // Цветовые
-    'background-color': 'bg',
-    'color': 'text',
+    'background-color': 'bg-color',
+    'color': 'color',
     'border-color': 'border',
     'outline-color': 'outline',
     'text-decoration-color': 'decoration',
@@ -77,7 +77,7 @@ export const UNO_PROPERTY_MAP = {
     'overflow-y': 'overflow-y',
     'object-fit': 'object',
     'object-position': 'object',
-    'background-image': 'bg',
+    'background-image': 'bg-image',
     'background-position': 'bg',
     'background-size': 'bg',
     'background-repeat': 'bg',
@@ -185,22 +185,22 @@ export class CSSUtils {
         // Специальная обработка background-image
         if (property === 'background-image') {
             if (trimmedValue.startsWith('url(')) {
-                return [`bg-[${trimmedValue}]`];
+                return [`bg-image-[${trimmedValue}]`];
             }
             else if (trimmedValue.startsWith('http')) {
-                return [`bg-[url(${trimmedValue})]`];
+                return [`bg-image-[url(${trimmedValue})]`];
             }
             else {
-                return [`bg-[${trimmedValue}]`];
+                return [`bg-image-[${trimmedValue}]`];
             }
         }
-        // Специальная обработка цветовых свойств
-        if (property === 'background-color' || property === 'color') {
+        // Специальная обработка цветовых свойств согласно документации
+        if (property === 'background-color') {
             if (trimmedValue.startsWith('#')) {
-                return [`${property === 'background-color' ? 'bg' : 'text'}-[${trimmedValue}]`];
+                return [`bg-color-[${trimmedValue}]`];
             }
             if (trimmedValue.startsWith('rgb') || trimmedValue.startsWith('hsl')) {
-                return [`${property === 'background-color' ? 'bg' : 'text'}-[${trimmedValue}]`];
+                return [`bg-color-[${trimmedValue}]`];
             }
             // Для именованных цветов
             const namedColors = {
@@ -217,9 +217,35 @@ export class CSSUtils {
             };
             const colorClass = namedColors[trimmedValue];
             if (colorClass) {
-                return [`${property === 'background-color' ? 'bg' : 'text'}-${colorClass}`];
+                return [`bg-${colorClass}`];
             }
-            return [`${property === 'background-color' ? 'bg' : 'text'}-[${trimmedValue}]`];
+            return [`bg-color-[${trimmedValue}]`];
+        }
+        if (property === 'color') {
+            if (trimmedValue.startsWith('#')) {
+                return [`color-[${trimmedValue}]`];
+            }
+            if (trimmedValue.startsWith('rgb') || trimmedValue.startsWith('hsl')) {
+                return [`color-[${trimmedValue}]`];
+            }
+            // Для именованных цветов
+            const namedColors = {
+                'red': 'red-500',
+                'green': 'green-500',
+                'blue': 'blue-500',
+                'black': 'black',
+                'white': 'white',
+                'gray': 'gray-500',
+                'yellow': 'yellow-500',
+                'orange': 'orange-500',
+                'purple': 'purple-500',
+                'pink': 'pink-500'
+            };
+            const colorClass = namedColors[trimmedValue];
+            if (colorClass) {
+                return [`color-${colorClass}`];
+            }
+            return [`color-[${trimmedValue}]`];
         }
         // Обработка сокращённых свойств
         if (property === 'margin' || property === 'padding') {

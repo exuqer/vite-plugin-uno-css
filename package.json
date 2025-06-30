@@ -18,6 +18,7 @@
     "test": "bun test"
   },
   "devDependencies": {
+    "@types/cheerio": "^1.0.0",
     "@types/css-tree": "^2.3.10",
     "@types/glob": "^8.1.0",
     "@types/node": "^20.0.0",
@@ -30,6 +31,8 @@
     "@unocss/preset-attributify": "^0.58.0",
     "@unocss/preset-icons": "^0.58.0",
     "@unocss/preset-uno": "^0.58.0",
+    "@vue/compiler-sfc": "^3.5.17",
+    "cheerio": "^1.1.0",
     "css-tree": "^2.3.0",
     "cssnano": "^6.0.3",
     "node-html-parser": "^7.0.1",
