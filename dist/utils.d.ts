@@ -12,14 +12,6 @@ export declare class CSSUtils {
      */
     private static processShorthandProperty;
     /**
-     * Обрабатывает сокращённое свойство border
-     */
-    private static processBorderShorthand;
-    /**
-     * Обрабатывает сокращённое свойство background
-     */
-    private static processBackgroundShorthand;
-    /**
      * Преобразует CSS AST значение в строку
      */
     static propertyValueToString(value: any): string;

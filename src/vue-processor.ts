@@ -3,7 +3,7 @@ import { parse as parseCSS, walk } from 'css-tree';
 import { CSSUtils } from './utils';
 
 export class VueProcessor {
-  async process(code: string, id: string, classMappingCache: Map<string, string>): Promise<string> {
+  async process(code: string, id: string, classMappingCache: Map<string, string>, allUnoClasses?: Set<string>): Promise<string> {
     try {
       console.log(`[vue-processor] Processing Vue file: ${id}`);
       console.log(`[vue-processor] Code length: ${code.length}`);
@@ -49,6 +49,12 @@ export class VueProcessor {
         }
       }
       
+      if (allUnoClasses) {
+        for (const uno of classMappingCache.values()) {
+          uno.split(' ').forEach(cls => allUnoClasses.add(cls));
+        }
+      }
+      
       console.log(`[vue-processor] Cache size after processing: ${classMappingCache.size}`);
       return processedCode;
     } catch (error) {
@@ -69,19 +75,18 @@ export class VueProcessor {
         if (classAttr) {
           const classes = classAttr.split(' ').filter(Boolean);
           const processedClasses: string[] = [];
-          
           for (const className of classes) {
-            // Убираем scoped классы (data-v-*)
             if (!className.startsWith('data-v-')) {
               const unoClasses = classMappingCache.get(className);
               if (unoClasses) {
                 processedClasses.push(...unoClasses.split(' '));
               } else {
+                // Логируем предупреждение и оставляем класс для отладки
+                console.warn(`[vue-processor] Класс '${className}' не найден в маппинге!`);
                 processedClasses.push(className);
               }
             }
           }
-          
           if (processedClasses.length > 0) {
             element.setAttribute('class', processedClasses.join(' '));
           } else {

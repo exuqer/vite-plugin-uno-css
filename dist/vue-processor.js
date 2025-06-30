@@ -2,7 +2,7 @@ import { parse } from 'node-html-parser';
 import { parse as parseCSS, walk } from 'css-tree';
 import { CSSUtils } from './utils';
 export class VueProcessor {
-    async process(code, id, classMappingCache) {
+    async process(code, id, classMappingCache, allUnoClasses) {
         try {
             console.log(`[vue-processor] Processing Vue file: ${id}`);
             console.log(`[vue-processor] Code length: ${code.length}`);
@@ -38,6 +38,11 @@ export class VueProcessor {
                     }
                 }
             }
+            if (allUnoClasses) {
+                for (const uno of classMappingCache.values()) {
+                    uno.split(' ').forEach(cls => allUnoClasses.add(cls));
+                }
+            }
             console.log(`[vue-processor] Cache size after processing: ${classMappingCache.size}`);
             return processedCode;
         }
@@ -57,13 +62,14 @@ export class VueProcessor {
                     const classes = classAttr.split(' ').filter(Boolean);
                     const processedClasses = [];
                     for (const className of classes) {
-                        // Убираем scoped классы (data-v-*)
                         if (!className.startsWith('data-v-')) {
                             const unoClasses = classMappingCache.get(className);
                             if (unoClasses) {
                                 processedClasses.push(...unoClasses.split(' '));
                             }
                             else {
+                                // Логируем предупреждение и оставляем класс для отладки
+                                console.warn(`[vue-processor] Класс '${className}' не найден в маппинге!`);
                                 processedClasses.push(className);
                             }
                         }

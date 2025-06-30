@@ -34,8 +34,12 @@ export async function processVueFile(vuePath: string) {
   const $ = cheerio.load(template, { xmlMode: false });
   $('[class]').each((_: any, el: any) => {
     const orig = $(el).attr('class')!;
-    const uno = orig.split(/\s+/).flatMap((cls: string) => classMap[cls] || cls);
-    $(el).attr('class', uno.join(' '));
+    const uno = orig.split(/\s+/).flatMap((cls: string) => classMap[cls] || []).filter(Boolean);
+    if (uno.length > 0) {
+      $(el).attr('class', uno.join(' '));
+    } else {
+      $(el).removeAttr('class');
+    }
   });
   // Удаляем scoped-атрибуты
   $('*').each((_: any, el: any) => {

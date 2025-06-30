@@ -55,6 +55,22 @@ function isAsset(file: unknown): file is OutputAsset {
   return !!file && typeof file === 'object' && (file as any).type === 'asset';
 }
 
+// Вспомогательная функция для преобразования классов с числовыми суффиксами в arbitrary values UnoCSS
+function normalizeArbitraryClass(cls: string): string {
+  // Преобразуем w-150px -> w-[150px], rounded-8px -> rounded-[8px], и т.п.
+  // Поддержка px, rem, em, %, и просто числа
+  return cls.replace(
+    /^(w|h|m|p|rounded|text|gap|top|left|right|bottom|z|border|inset|min-w|min-h|max-w|max-h)-(\-?\d+(?:px|rem|em|%)?)/,
+    (_, prefix, value) => `${prefix}-[${value}]`
+  );
+}
+
+function isUnoClass(cls: string): boolean {
+  // Примитивная проверка: uno-класс содержит дефис и не является BEM/кастомным
+  // Можно доработать под ваши правила
+  return /-|\[.*\]/.test(cls) && !/^[_a-zA-Z0-9]+(__|--)/.test(cls);
+}
+
 export function UnoCSSPlugin(options: PluginOptions = {}): Plugin {
   // Плагин работает только для сборки (vite build)
   const base: Plugin = {
@@ -67,6 +83,7 @@ export function UnoCSSPlugin(options: PluginOptions = {}): Plugin {
   const cssProcessor = new CSSProcessor(null as any); // UnoGenerator будет позже
   const vueProcessor = new VueProcessor();
   const htmlProcessor = new HTMLProcessor();
+  const allUnoClasses = new Set<string>();
 
   let unoCssHtml = '';
   let unoCssRaw = '';
@@ -83,13 +100,21 @@ export function UnoCSSPlugin(options: PluginOptions = {}): Plugin {
       }
       // Обрабатываем только исходные .vue-файлы с <template>
       if (id.endsWith('.vue') && code.includes('<template')) {
-        let processed = await vueProcessor.process(code, id, classMappingCache);
+        let processed = await vueProcessor.process(code, id, classMappingCache, allUnoClasses);
+        // Заменяем кастомные классы на uno-классы только внутри <template>...</template> через парсер
         processed = processed.replace(/(<template[^>]*>)([\s\S]*?)(<\/template>)/, (full: string, open: string, templateContent: string, close: string) => {
           // Парсим только содержимое шаблона, без <html><head><body>
           const root = parseHtml(`<root>${templateContent}</root>`);
           root.querySelectorAll('[class]').forEach(el => {
             const orig = el.getAttribute('class')!;
-            const uno = orig.split(/\s+/).map((cls: string) => classMappingCache.get(cls) || cls).join(' ');
+            const uno = orig.split(/\s+/)
+              .map((cls: string) => {
+                const mapped = classMappingCache.get(cls) || cls;
+                const normalized = normalizeArbitraryClass(mapped);
+                return isUnoClass(normalized) ? normalized : '';
+              })
+              .filter(Boolean)
+              .join(' ');
             el.setAttribute('class', uno);
           });
           // Возвращаем только внутренности <root>...</root>
@@ -126,24 +151,73 @@ export function UnoCSSPlugin(options: PluginOptions = {}): Plugin {
       // UnoCSS CSS generation is now handled in transformIndexHtml
     },
     async transformIndexHtml(html: string) {
+      console.log('[vite-plugin-unocss-css] transformIndexHtml called');
       // Заменяем кастомные классы на uno-классы
       const root = parseHtml(html);
       root.querySelectorAll('[class]').forEach(el => {
         const orig = el.getAttribute('class')!;
-        const uno = orig.split(/\s+/).map((cls: string) => classMappingCache.get(cls) || cls).join(' ');
+        const uno = orig.split(/\s+/)
+          .map((cls: string) => {
+            const mapped = classMappingCache.get(cls) || cls;
+            const normalized = normalizeArbitraryClass(mapped);
+            return isUnoClass(normalized) ? normalized : '';
+          })
+          .filter(Boolean)
+          .join(' ');
         el.setAttribute('class', uno);
       });
-      // Собираем все классы
+      // Собираем все классы из HTML
       const unoClassSet = new Set<string>();
       root.querySelectorAll('[class]').forEach(el => {
-        el.getAttribute('class')!.split(/\s+/).forEach(cls => unoClassSet.add(cls));
+        el.getAttribute('class')!.split(/\s+/).forEach(cls => {
+          const normalized = normalizeArbitraryClass(cls);
+          if (isUnoClass(normalized)) unoClassSet.add(normalized);
+        });
       });
+      // Дополнительно собираем классы из всех JS-файлов в assets
+      const assetsDir = path.resolve(__dirname, '../example/dist-example/assets');
+      try {
+        const files = await fs.readdir(assetsDir);
+        for (const file of files) {
+          if (file.endsWith('.js')) {
+            const content = await fs.readFile(path.join(assetsDir, file), 'utf8');
+            // Расширенная регулярка для поиска uno-классов в строках и шаблонах
+            const classRegex = /class\s*[:=]\s*["'`]([^"'`]+)["'`]/g;
+            let match;
+            while ((match = classRegex.exec(content))) {
+              match[1].split(/\s+/).forEach(cls => {
+                const normalized = normalizeArbitraryClass(cls);
+                if (isUnoClass(normalized)) unoClassSet.add(normalized);
+              });
+            }
+            // Также ищем uno-классы в шаблонных строках
+            const tplRegex = /class:\s*["'`]([^"'`]+)["'`]/g;
+            while ((match = tplRegex.exec(content))) {
+              match[1].split(/\s+/).forEach(cls => {
+                const normalized = normalizeArbitraryClass(cls);
+                if (isUnoClass(normalized)) unoClassSet.add(normalized);
+              });
+            }
+          }
+        }
+      } catch (e) {
+        // ignore if assets dir does not exist yet
+      }
+      // После сбора unoClassSet из HTML и JS:
+      allUnoClasses.forEach(cls => unoClassSet.add(cls));
       const unoClassesArr = Array.from(unoClassSet);
+      console.log('[vite-plugin-unocss-css] UnoCSS классы для генерации:', unoClassesArr);
       const uno = createGenerator({ presets: [presetUno, presetAttributify, presetIcons] });
       const { css } = await uno.generate(unoClassesArr.join(' '));
       // Сохраняем CSS в example/dist-example/unocss-generated.css
       const fsPath = path.resolve(__dirname, '../example/dist-example/unocss-generated.css');
-      await fs.writeFile(fsPath, css, 'utf8');
+      try {
+        await fs.mkdir(path.dirname(fsPath), { recursive: true });
+        await fs.writeFile(fsPath, css, 'utf8');
+        console.log('[vite-plugin-unocss-css] CSS written to', fsPath);
+      } catch (e) {
+        console.error('[vite-plugin-unocss-css] Failed to write CSS:', e);
+      }
       // Возвращаем HTML с правильной ссылкой
       let out = root.toString();
       out = out.replace(/<link[^>]*rel=["']stylesheet["'][^>]*>/gi, '');

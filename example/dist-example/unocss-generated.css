@@ -3,17 +3,30 @@
 /* layer: default */
 .\[align-items\:center\]{align-items:center;}
 .\[justify-content\:center\]{justify-content:center;}
+.m-\[25px\]{margin:25px;}
 .m-\[281px\]{margin:281px;}
+.h-\[100px\]{height:100px;}
 .h-\[200px\]{height:200px;}
 .w-\[100px\]{width:100px;}
+.w-\[150px\]{width:150px;}
+.flex{display:flex;}
+.border-2{border-width:2px;}
 .border-\[\#333\]{--un-border-opacity:1;border-color:rgb(51 51 51 / var(--un-border-opacity));}
 .border-\[2\]{border-color:2;}
+.rounded-\[12px\]{border-radius:12px;}
 .rounded-\[4px\]{border-radius:4px;}
 .rounded-\[8px\]{border-radius:8px;}
 .border-solid{border-style:solid;}
+.bg-\[\#4a90e2\]{--un-bg-opacity:1;background-color:rgb(74 144 226 / var(--un-bg-opacity));}
 .bg-\[\#d07f44\]{--un-bg-opacity:1;background-color:rgb(208 127 68 / var(--un-bg-opacity));}
+.bg-\[url\(https\:\/\/picsum\.photos\/300\)\]{--un-url:url(https://picsum.photos/300);background-image:var(--un-url);}
 .p-\[10px\]{padding:10px;}
+.p-\[15px\]{padding:15px;}
 .text-center{text-align:center;}
 .text-\[16px\]{font-size:16px;}
+.text-\[18px\]{font-size:18px;}
 .text-\[green\]{color:green;}
+.text-\[rgb\(30\,184\,158\)\]{--un-text-opacity:1;color:rgb(30 184 158 / var(--un-text-opacity));}
+.text-\[white\]{color:white;}
 .font-bold{font-weight:700;}
+.font-semibold{font-weight:600;}

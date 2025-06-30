@@ -157,7 +157,7 @@ export class CSSUtils {
      */
     static convertPropertyToUnoClass(property, value) {
         const trimmedValue = value.trim();
-        // Специальная обработка display
+        // Display
         if (property === 'display') {
             const displayMap = {
                 'flex': 'flex',
@@ -170,7 +170,7 @@ export class CSSUtils {
             const unoClass = displayMap[trimmedValue];
             return unoClass ? [unoClass] : null;
         }
-        // Специальная обработка position
+        // Position
         if (property === 'position') {
             const positionMap = {
                 'relative': 'relative',
@@ -182,89 +182,235 @@ export class CSSUtils {
             const unoClass = positionMap[trimmedValue];
             return unoClass ? [unoClass] : null;
         }
-        // Специальная обработка background-image
+        // background-image
         if (property === 'background-image') {
             if (trimmedValue.startsWith('url(')) {
-                return [`bg-image-[${trimmedValue}]`];
+                return [`bg-[${trimmedValue}]`];
             }
             else if (trimmedValue.startsWith('http')) {
-                return [`bg-image-[url(${trimmedValue})]`];
+                return [`bg-[url(${trimmedValue})]`];
             }
             else {
-                return [`bg-image-[${trimmedValue}]`];
+                return [`bg-[${trimmedValue}]`];
             }
         }
-        // Специальная обработка цветовых свойств согласно документации
+        // background-color
         if (property === 'background-color') {
-            if (trimmedValue.startsWith('#')) {
-                return [`bg-color-[${trimmedValue}]`];
+            if (/^-?\d+(\.\d+)?px$/.test(trimmedValue))
+                return [`bg-[${trimmedValue}]`];
+            if (/^#/.test(trimmedValue))
+                return [`bg-[${trimmedValue}]`];
+            if (/^rgb|^hsl/.test(trimmedValue)) {
+                const val = trimmedValue.replace(/,\s+/g, ',');
+                return [`bg-[${val}]`];
             }
-            if (trimmedValue.startsWith('rgb') || trimmedValue.startsWith('hsl')) {
-                return [`bg-color-[${trimmedValue}]`];
-            }
-            // Для именованных цветов
-            const namedColors = {
-                'red': 'red-500',
-                'green': 'green-500',
-                'blue': 'blue-500',
-                'black': 'black',
-                'white': 'white',
-                'gray': 'gray-500',
-                'yellow': 'yellow-500',
-                'orange': 'orange-500',
-                'purple': 'purple-500',
-                'pink': 'pink-500'
-            };
-            const colorClass = namedColors[trimmedValue];
-            if (colorClass) {
-                return [`bg-${colorClass}`];
-            }
-            return [`bg-color-[${trimmedValue}]`];
+            if (/^[a-zA-Z]+$/.test(trimmedValue))
+                return [`bg-[${trimmedValue}]`];
+            return [`bg-[${trimmedValue}]`];
         }
+        // color
         if (property === 'color') {
-            if (trimmedValue.startsWith('#')) {
-                return [`color-[${trimmedValue}]`];
+            if (/^-?\d+(\.\d+)?px$/.test(trimmedValue))
+                return [`text-[${trimmedValue}]`];
+            if (/^#/.test(trimmedValue))
+                return [`text-[${trimmedValue}]`];
+            if (/^rgb|^hsl/.test(trimmedValue)) {
+                const val = trimmedValue.replace(/,\s+/g, ',');
+                return [`text-[${val}]`];
             }
-            if (trimmedValue.startsWith('rgb') || trimmedValue.startsWith('hsl')) {
-                return [`color-[${trimmedValue}]`];
-            }
-            // Для именованных цветов
-            const namedColors = {
-                'red': 'red-500',
-                'green': 'green-500',
-                'blue': 'blue-500',
-                'black': 'black',
-                'white': 'white',
-                'gray': 'gray-500',
-                'yellow': 'yellow-500',
-                'orange': 'orange-500',
-                'purple': 'purple-500',
-                'pink': 'pink-500'
-            };
-            const colorClass = namedColors[trimmedValue];
-            if (colorClass) {
-                return [`color-${colorClass}`];
-            }
-            return [`color-[${trimmedValue}]`];
+            if (/^[a-zA-Z]+$/.test(trimmedValue))
+                return [`text-[${trimmedValue}]`];
+            return [`text-[${trimmedValue}]`];
         }
-        // Обработка сокращённых свойств
+        // border-radius
+        if (property === 'border-radius') {
+            if (/^-?\d+(\.\d+)?px$/.test(trimmedValue))
+                return [`rounded-[${trimmedValue}]`];
+            const unoRadiusMap = {
+                '4px': 'rounded',
+                '8px': 'rounded-md',
+                '12px': 'rounded-lg',
+                '9999px': 'rounded-full',
+            };
+            if (unoRadiusMap[trimmedValue])
+                return [unoRadiusMap[trimmedValue]];
+            return [`rounded-[${trimmedValue}]`];
+        }
+        // font-weight
+        if (property === 'font-weight') {
+            const unoWeightMap = {
+                'bold': 'font-bold',
+                'normal': 'font-normal',
+                '600': 'font-semibold',
+                '700': 'font-bold',
+                '400': 'font-normal',
+            };
+            if (unoWeightMap[trimmedValue])
+                return [unoWeightMap[trimmedValue]];
+            return [`font-[${trimmedValue}]`];
+        }
+        // font-size
+        if (property === 'font-size') {
+            if (/^-?\d+(\.\d+)?px$/.test(trimmedValue))
+                return [`text-[${trimmedValue}]`];
+            const unoSizeMap = {
+                '16px': 'text-base',
+                '18px': 'text-lg',
+                '20px': 'text-xl',
+                '24px': 'text-2xl',
+                '32px': 'text-4xl',
+                '12px': 'text-xs',
+                '14px': 'text-sm',
+            };
+            if (unoSizeMap[trimmedValue])
+                return [unoSizeMap[trimmedValue]];
+            return [`text-[${trimmedValue}]`];
+        }
+        // text-align
+        if (property === 'text-align') {
+            const alignMap = {
+                'center': 'text-center',
+                'left': 'text-left',
+                'right': 'text-right',
+                'justify': 'text-justify',
+                'start': 'text-start',
+                'end': 'text-end'
+            };
+            return alignMap[trimmedValue] ? [alignMap[trimmedValue]] : [`text-[${trimmedValue}]`];
+        }
+        // border-width
+        if (property === 'border-width') {
+            const unoBorderWidthMap = {
+                '1px': 'border',
+                '2px': 'border-2',
+                '4px': 'border-4',
+                '8px': 'border-8',
+            };
+            if (unoBorderWidthMap[trimmedValue])
+                return [unoBorderWidthMap[trimmedValue]];
+            return [`border-[${trimmedValue}]`];
+        }
+        // border-style
+        if (property === 'border-style') {
+            const unoBorderStyleMap = {
+                'solid': 'border-solid',
+                'dashed': 'border-dashed',
+                'dotted': 'border-dotted',
+                'double': 'border-double',
+                'none': 'border-none',
+            };
+            if (unoBorderStyleMap[trimmedValue])
+                return [unoBorderStyleMap[trimmedValue]];
+            return [`border-[${trimmedValue}]`];
+        }
+        // border-color
+        if (property === 'border-color') {
+            if (/^#/.test(trimmedValue))
+                return [`border-[${trimmedValue}]`];
+            if (/^rgb|^hsl/.test(trimmedValue)) {
+                const val = trimmedValue.replace(/,\s+/g, ',');
+                return [`border-[${val}]`];
+            }
+            if (/^[a-zA-Z]+$/.test(trimmedValue))
+                return [`border-[${trimmedValue}]`];
+            return [`border-[${trimmedValue}]`];
+        }
+        // width/height
+        if (property === 'width') {
+            if (/^-?\d+(\.\d+)?px$/.test(trimmedValue))
+                return [`w-[${trimmedValue}]`];
+            const unoWidthMap = {
+                '100%': 'w-full',
+                '100vw': 'w-screen',
+                'auto': 'w-auto',
+                '100px': 'w-100px',
+                '200px': 'w-200px',
+                '150px': 'w-150px',
+            };
+            if (unoWidthMap[trimmedValue])
+                return [unoWidthMap[trimmedValue]];
+            return [`w-[${trimmedValue}]`];
+        }
+        if (property === 'height') {
+            if (/^-?\d+(\.\d+)?px$/.test(trimmedValue))
+                return [`h-[${trimmedValue}]`];
+            const unoHeightMap = {
+                '100%': 'h-full',
+                '100vh': 'h-screen',
+                'auto': 'h-auto',
+                '100px': 'h-100px',
+                '200px': 'h-200px',
+                '150px': 'h-150px',
+            };
+            if (unoHeightMap[trimmedValue])
+                return [unoHeightMap[trimmedValue]];
+            return [`h-[${trimmedValue}]`];
+        }
+        // margin/padding (шорткаты)
         if (property === 'margin' || property === 'padding') {
             return this.processShorthandProperty(property, trimmedValue);
         }
+        if (property === 'margin-top')
+            return [`mt-[${trimmedValue}]`];
+        if (property === 'margin-right')
+            return [`mr-[${trimmedValue}]`];
+        if (property === 'margin-bottom')
+            return [`mb-[${trimmedValue}]`];
+        if (property === 'margin-left')
+            return [`ml-[${trimmedValue}]`];
+        if (property === 'padding-top')
+            return [`pt-[${trimmedValue}]`];
+        if (property === 'padding-right')
+            return [`pr-[${trimmedValue}]`];
+        if (property === 'padding-bottom')
+            return [`pb-[${trimmedValue}]`];
+        if (property === 'padding-left')
+            return [`pl-[${trimmedValue}]`];
+        // border (шорткат)
         if (property === 'border') {
-            return this.processBorderShorthand(trimmedValue);
+            // Ожидаем формат: '2px solid #333' или подобное
+            const parts = trimmedValue.split(/\s+/);
+            const unoClasses = [];
+            for (const part of parts) {
+                if (["solid", "dashed", "dotted", "double", "none"].includes(part)) {
+                    unoClasses.push(`border-${part}`);
+                }
+                else if (/^\d+(px|em|rem)?$/.test(part)) {
+                    const unoBorderWidthMap = {
+                        '1px': 'border',
+                        '2px': 'border-2',
+                        '4px': 'border-4',
+                        '8px': 'border-8',
+                    };
+                    unoClasses.push(unoBorderWidthMap[part] || `border-[${part}]`);
+                }
+                else if (part.startsWith('#') || part.startsWith('rgb') || part.startsWith('hsl')) {
+                    unoClasses.push(`border-[${part}]`);
+                }
+            }
+            return unoClasses.length > 0 ? unoClasses : null;
         }
-        if (property === 'background') {
-            return this.processBackgroundShorthand(trimmedValue);
+        // box-shadow
+        if (property === 'box-shadow') {
+            return [`shadow-[${trimmedValue}]`];
         }
-        // Обычный маппинг
-        const unoPrefix = UNO_PROPERTY_MAP[property];
-        if (unoPrefix) {
-            if (unoPrefix === '')
-                return null; // handled separately
-            return [`${unoPrefix}-${trimmedValue}`];
+        // opacity
+        if (property === 'opacity') {
+            return [`opacity-[${trimmedValue}]`];
         }
-        // Fallback для нестандартных свойств
+        // z-index
+        if (property === 'z-index') {
+            return [`z-[${trimmedValue}]`];
+        }
+        // overflow
+        if (property === 'overflow') {
+            return [`overflow-[${trimmedValue}]`];
+        }
+        // text-decoration
+        if (property === 'text-decoration') {
+            return [`text-decoration-[${trimmedValue}]`];
+        }
+        // fallback
         return [`[${property}:${trimmedValue}]`];
     }
     /**
@@ -275,10 +421,6 @@ export class CSSUtils {
         const unoClasses = [];
         const prefix = property[0]; // 'm' для margin, 'p' для padding
         function format(val) {
-            if (/^-?\d+(px|rem|em|%)$/.test(val))
-                return val;
-            if (/^-?\d+$/.test(val))
-                return val;
             return `[${val}]`;
         }
         if (parts.length === 1) {
@@ -298,51 +440,6 @@ export class CSSUtils {
             unoClasses.push(`${prefix}r-${format(parts[1])}`);
             unoClasses.push(`${prefix}b-${format(parts[2])}`);
             unoClasses.push(`${prefix}l-${format(parts[3])}`);
-        }
-        return unoClasses;
-    }
-    /**
-     * Обрабатывает сокращённое свойство border
-     */
-    static processBorderShorthand(value) {
-        const parts = value.split(/\s+/);
-        const unoClasses = [];
-        for (const part of parts) {
-            if (/^\d+px$/.test(part)) {
-                unoClasses.push(`border-${part.replace('px', '')}`);
-            }
-            else if (['solid', 'dashed', 'dotted', 'double', 'none'].includes(part)) {
-                unoClasses.push(`border-${part}`);
-            }
-            else if (part.startsWith('#')) {
-                unoClasses.push(`border-[${part}]`);
-            }
-            else if (part.startsWith('rgb') || part.startsWith('hsl')) {
-                unoClasses.push(`border-[${part}]`);
-            }
-        }
-        return unoClasses;
-    }
-    /**
-     * Обрабатывает сокращённое свойство background
-     */
-    static processBackgroundShorthand(value) {
-        const unoClasses = [];
-        // Простая обработка - разбиваем по пробелам
-        const parts = value.split(/\s+/);
-        for (const part of parts) {
-            if (part.startsWith('url(')) {
-                unoClasses.push(`bg-[${part}]`);
-            }
-            else if (part.startsWith('#') || part.startsWith('rgb') || part.startsWith('hsl')) {
-                unoClasses.push(`bg-[${part}]`);
-            }
-            else if (['no-repeat', 'repeat', 'repeat-x', 'repeat-y'].includes(part)) {
-                unoClasses.push(`bg-${part.replace('-', '')}`);
-            }
-            else if (['center', 'top', 'bottom', 'left', 'right'].includes(part)) {
-                unoClasses.push(`bg-${part}`);
-            }
         }
         return unoClasses;
     }
@@ -374,34 +471,66 @@ export class CSSUtils {
                 }
                 else if (child.type === 'Function') {
                     // Обработка функций типа url(), rgb(), hsl()
-                    let funcStr = child.name + '(';
-                    if (child.children) {
-                        let funcCurrent = child.children.head;
-                        while (funcCurrent) {
-                            const funcChild = funcCurrent.data;
-                            if (funcChild.type === 'String') {
-                                funcStr += `"${funcChild.value}"`;
+                    if (/^(rgb|rgba|hsl|hsla)$/i.test(child.name)) {
+                        // Собираем значения с запятыми
+                        let args = [];
+                        if (child.children) {
+                            let funcCurrent = child.children.head;
+                            while (funcCurrent) {
+                                const funcChild = funcCurrent.data;
+                                if (funcChild.type === 'Number') {
+                                    args.push(funcChild.value);
+                                }
+                                else if (funcChild.type === 'Dimension') {
+                                    args.push(funcChild.value + funcChild.unit);
+                                }
+                                else if (funcChild.type === 'Hash') {
+                                    args.push('#' + funcChild.value);
+                                }
+                                else if (funcChild.type === 'Raw') {
+                                    args.push(funcChild.value);
+                                }
+                                else if (funcChild.type === 'Identifier') {
+                                    args.push(funcChild.name);
+                                }
+                                else if (funcChild.type === 'String') {
+                                    args.push('"' + funcChild.value + '"');
+                                }
+                                funcCurrent = funcCurrent.next;
                             }
-                            else if (funcChild.type === 'Number') {
-                                funcStr += funcChild.value;
-                            }
-                            else if (funcChild.type === 'Dimension') {
-                                funcStr += funcChild.value + funcChild.unit;
-                            }
-                            else if (funcChild.type === 'Hash') {
-                                funcStr += '#' + funcChild.value;
-                            }
-                            else if (funcChild.type === 'Raw') {
-                                funcStr += funcChild.value;
-                            }
-                            else if (funcChild.type === 'Identifier') {
-                                funcStr += funcChild.name;
-                            }
-                            funcCurrent = funcCurrent.next;
                         }
+                        childValue = `${child.name}(${args.join(',')})`;
                     }
-                    funcStr += ')';
-                    childValue = funcStr;
+                    else {
+                        let funcStr = child.name + '(';
+                        if (child.children) {
+                            let funcCurrent = child.children.head;
+                            while (funcCurrent) {
+                                const funcChild = funcCurrent.data;
+                                if (funcChild.type === 'String') {
+                                    funcStr += `"${funcChild.value}"`;
+                                }
+                                else if (funcChild.type === 'Number') {
+                                    funcStr += funcChild.value;
+                                }
+                                else if (funcChild.type === 'Dimension') {
+                                    funcStr += funcChild.value + funcChild.unit;
+                                }
+                                else if (funcChild.type === 'Hash') {
+                                    funcStr += '#' + funcChild.value;
+                                }
+                                else if (funcChild.type === 'Raw') {
+                                    funcStr += funcChild.value;
+                                }
+                                else if (funcChild.type === 'Identifier') {
+                                    funcStr += funcChild.name;
+                                }
+                                funcCurrent = funcCurrent.next;
+                            }
+                        }
+                        funcStr += ')';
+                        childValue = funcStr;
+                    }
                 }
                 else if (child.type === 'Identifier') {
                     childValue = child.name;

@@ -1,5 +1,5 @@
 export declare class VueProcessor {
-    process(code: string, id: string, classMappingCache: Map<string, string>): Promise<string>;
+    process(code: string, id: string, classMappingCache: Map<string, string>, allUnoClasses?: Set<string>): Promise<string>;
     private processTemplate;
     private extractClassesFromStyles;
     private processCSSRule;
