@@ -62,6 +62,7 @@ export function UnoCSSPlugin(options = {}) {
     return {
         ...base,
         async transform(code, id) {
+            console.log('PLUGIN:', id);
             // Не трогать node_modules и виртуальные файлы
             if (id.includes('node_modules') || id.startsWith('\0'))
                 return null;
@@ -70,7 +71,7 @@ export function UnoCSSPlugin(options = {}) {
                 return '';
             }
             // Обрабатываем только исходные .vue-файлы с <template>
-            if (id.endsWith('.vue') && code.includes('<template')) {
+            if (id.endsWith('.vue') && !id.includes('?') && code.includes('<template')) {
                 let processed = await vueProcessor.process(code, id, classMappingCache, allUnoClasses);
                 // Заменяем кастомные классы на uno-классы только внутри <template>...</template> через парсер
                 processed = processed.replace(/(<template[^>]*>)([\s\S]*?)(<\/template>)/, (full, open, templateContent, close) => {
@@ -107,15 +108,6 @@ export function UnoCSSPlugin(options = {}) {
                     el.setAttribute('class', uno);
                 });
                 return root.toString();
-            }
-            // Только js/ts исходники проекта
-            if ((id.endsWith('.js') || id.endsWith('.ts')) && (id.includes('/src/') || id.includes('/example/'))) {
-                let processed = await htmlProcessor.process(code, id, classMappingCache);
-                processed = processed.replace(/class\s*=\s*["']([^"']+)["']/g, (full, classStr) => {
-                    const unoClasses = classStr.split(/\s+/).map((cls) => classMappingCache.get(cls) || cls).join(' ');
-                    return `class=\"${unoClasses}\"`;
-                });
-                return processed;
             }
             return null;
         },
@@ -185,8 +177,8 @@ export function UnoCSSPlugin(options = {}) {
             console.log('[vite-plugin-unocss-css] UnoCSS классы для генерации:', unoClassesArr);
             const uno = createGenerator({ presets: [presetUno, presetAttributify, presetIcons] });
             const { css } = await uno.generate(unoClassesArr.join(' '));
-            // Сохраняем CSS в example/dist-example/unocss-generated.css
-            const fsPath = path.resolve(__dirname, '../example/dist-example/unocss-generated.css');
+            // Собираем CSS в dist/unocss-generated.css текущего проекта
+            const fsPath = path.resolve(process.cwd(), 'dist/unocss-generated.css');
             try {
                 await fs.mkdir(path.dirname(fsPath), { recursive: true });
                 await fs.writeFile(fsPath, css, 'utf8');

@@ -1,5 +1,4 @@
 import { parse as parseSFC } from '@vue/compiler-sfc';
-import { parse as parseTemplateAST, transform, generate, NodeTypes } from '@vue/compiler-dom';
 // import { parse } from 'node-html-parser';
 import { parse as parseCSS, walk } from 'css-tree';
 import { CSSUtils } from './utils';
@@ -17,26 +16,16 @@ export class VueProcessor {
             if (processedTemplate) {
                 processedTemplate = await this.processTemplate(processedTemplate, classMappingCache);
             }
-            // Собираем новый SFC
-            let result = '';
-            if (processedTemplate) {
-                result += `<template>${processedTemplate}</template>\n`;
-            }
-            if (descriptor.script) {
-                result += code.slice(descriptor.script.loc.start.offset, descriptor.script.loc.end.offset) + '\n';
-            }
-            if (descriptor.scriptSetup) {
-                result += code.slice(descriptor.scriptSetup.loc.start.offset, descriptor.scriptSetup.loc.end.offset) + '\n';
-            }
-            for (const style of descriptor.styles) {
-                result += code.slice(style.loc.start.offset, style.loc.end.offset) + '\n';
-            }
             if (allUnoClasses) {
                 for (const uno of classMappingCache.values()) {
                     uno.split(' ').forEach(cls => allUnoClasses.add(cls));
                 }
             }
-            return result;
+            // Новый способ: заменяем только <template>...</template> в исходном коде
+            if (processedTemplate) {
+                return code.replace(/<template[^>]*>[\s\S]*?<\/template>/, `<template>${processedTemplate}</template>`);
+            }
+            return code;
         }
         catch (error) {
             console.error('Error processing Vue file:', error);
@@ -44,35 +33,8 @@ export class VueProcessor {
         }
     }
     async processTemplate(template, classMappingCache) {
-        try {
-            const ast = parseTemplateAST(template);
-            transform(ast, {
-                nodeTransforms: [node => {
-                        if (node.type === NodeTypes.ELEMENT && node.props) {
-                            for (const prop of node.props) {
-                                if (prop.type === NodeTypes.ATTRIBUTE && prop.name === 'class' && prop.value) {
-                                    const classes = prop.value.content.split(' ').filter(Boolean);
-                                    const unoClasses = classes.map((cls) => classMappingCache.get(cls) || cls);
-                                    prop.value.content = unoClasses.join(' ');
-                                }
-                            }
-                        }
-                    }]
-            });
-            // Используем готовый генератор
-            const { code } = generate(ast, { mode: 'module' });
-            // Извлекаем строку шаблона из кода (между return `...`)
-            const match = code.match(/return `([\s\S]*)`/);
-            if (match) {
-                // Возвращаем строку шаблона для SFC, а не HTML!
-                return match[1];
-            }
-            return template;
-        }
-        catch (error) {
-            console.error('Error parsing Vue template with AST:', error);
-            return template;
-        }
+        // Временно отключено для диагностики ошибок
+        return template;
     }
     async extractClassesFromStyles(styles, classMappingCache) {
         try {
