@@ -1,6 +1,12 @@
+<script setup lang="ts">
+  import Test from './src/Test.vue';
+</script>
+
 <template>
   <div class="vue-example">
     <div class="vue-example__item"> Hello from Vue! </div>
+
+    <Test  v-for="i in 10" :key="i"/>
   </div>
   <div class="bg-red-500 p-4 text-white rounded-xl m-4">UnoCSS test</div>
 </template>

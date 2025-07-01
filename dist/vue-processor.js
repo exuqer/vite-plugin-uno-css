@@ -1,50 +1,42 @@
-import { parse } from 'node-html-parser';
+import { parse as parseSFC } from '@vue/compiler-sfc';
+import { parse as parseTemplateAST, transform, generate, NodeTypes } from '@vue/compiler-dom';
+// import { parse } from 'node-html-parser';
 import { parse as parseCSS, walk } from 'css-tree';
 import { CSSUtils } from './utils';
 export class VueProcessor {
     async process(code, id, classMappingCache, allUnoClasses) {
         try {
-            console.log(`[vue-processor] Processing Vue file: ${id}`);
-            console.log(`[vue-processor] Code length: ${code.length}`);
-            console.log(`[vue-processor] Code preview: ${code.substring(0, 200)}...`);
-            // Разбираем Vue файл на секции
-            const templateMatch = code.match(/<template[^>]*>([\s\S]*?)<\/template>/);
-            const styleMatches = code.match(/<style[^>]*>([\s\S]*?)<\/style>/g);
-            console.log(`[vue-processor] Found ${styleMatches?.length || 0} style blocks`);
-            console.log(`[vue-processor] Template found: ${!!templateMatch}`);
-            if (styleMatches) {
-                styleMatches.forEach((match, index) => {
-                    console.log(`[vue-processor] Style block ${index}: ${match.substring(0, 100)}...`);
-                });
+            const { descriptor } = parseSFC(code);
+            // 1. Сначала обработать все стили и построить маппинг
+            for (const style of descriptor.styles) {
+                const styleContent = code.slice(style.loc.start.offset, style.loc.end.offset);
+                await this.extractClassesFromStyles(styleContent, classMappingCache);
             }
-            let processedCode = code;
-            // Обрабатываем template
-            if (templateMatch) {
-                const templateContent = templateMatch[1];
-                const processedTemplate = await this.processTemplate(templateContent, classMappingCache);
-                processedCode = processedCode.replace(templateMatch[0], templateMatch[0].replace(templateContent, processedTemplate));
+            // 2. Теперь обработать шаблон
+            let processedTemplate = descriptor.template?.content || '';
+            if (processedTemplate) {
+                processedTemplate = await this.processTemplate(processedTemplate, classMappingCache);
             }
-            // Обрабатываем стили
-            if (styleMatches) {
-                for (const styleMatch of styleMatches) {
-                    const styleContent = styleMatch.match(/<style[^>]*>([\s\S]*?)<\/style>/)?.[1];
-                    if (styleContent) {
-                        console.log(`[vue-processor] Processing style block:`, styleContent.substring(0, 100) + '...');
-                        // Извлекаем классы из стилей и добавляем в кэш
-                        await this.extractClassesFromStyles(styleContent, classMappingCache);
-                        // Удаляем scoped атрибут
-                        const processedStyleMatch = styleMatch.replace(/scoped/g, '');
-                        processedCode = processedCode.replace(styleMatch, processedStyleMatch);
-                    }
-                }
+            // Собираем новый SFC
+            let result = '';
+            if (processedTemplate) {
+                result += `<template>${processedTemplate}</template>\n`;
+            }
+            if (descriptor.script) {
+                result += code.slice(descriptor.script.loc.start.offset, descriptor.script.loc.end.offset) + '\n';
+            }
+            if (descriptor.scriptSetup) {
+                result += code.slice(descriptor.scriptSetup.loc.start.offset, descriptor.scriptSetup.loc.end.offset) + '\n';
+            }
+            for (const style of descriptor.styles) {
+                result += code.slice(style.loc.start.offset, style.loc.end.offset) + '\n';
             }
             if (allUnoClasses) {
                 for (const uno of classMappingCache.values()) {
                     uno.split(' ').forEach(cls => allUnoClasses.add(cls));
                 }
             }
-            console.log(`[vue-processor] Cache size after processing: ${classMappingCache.size}`);
-            return processedCode;
+            return result;
         }
         catch (error) {
             console.error('Error processing Vue file:', error);
@@ -53,50 +45,32 @@ export class VueProcessor {
     }
     async processTemplate(template, classMappingCache) {
         try {
-            const root = parse(template);
-            // Обрабатываем все элементы с классами
-            const elements = root.querySelectorAll('*');
-            for (const element of elements) {
-                const classAttr = element.getAttribute('class');
-                if (classAttr) {
-                    const classes = classAttr.split(' ').filter(Boolean);
-                    const processedClasses = [];
-                    for (const className of classes) {
-                        if (!className.startsWith('data-v-')) {
-                            const unoClasses = classMappingCache.get(className);
-                            if (unoClasses) {
-                                processedClasses.push(...unoClasses.split(' '));
-                            }
-                            else {
-                                // Логируем предупреждение и оставляем класс для отладки
-                                console.warn(`[vue-processor] Класс '${className}' не найден в маппинге!`);
-                                processedClasses.push(className);
+            const ast = parseTemplateAST(template);
+            transform(ast, {
+                nodeTransforms: [node => {
+                        if (node.type === NodeTypes.ELEMENT && node.props) {
+                            for (const prop of node.props) {
+                                if (prop.type === NodeTypes.ATTRIBUTE && prop.name === 'class' && prop.value) {
+                                    const classes = prop.value.content.split(' ').filter(Boolean);
+                                    const unoClasses = classes.map((cls) => classMappingCache.get(cls) || cls);
+                                    prop.value.content = unoClasses.join(' ');
+                                }
                             }
                         }
-                    }
-                    if (processedClasses.length > 0) {
-                        element.setAttribute('class', processedClasses.join(' '));
-                    }
-                    else {
-                        element.removeAttribute('class');
-                    }
-                }
-                // Удаляем data-v атрибуты
-                const attributes = element.attributes;
-                const dataVAttrs = [];
-                for (const attr in attributes) {
-                    if (attr.startsWith('data-v-')) {
-                        dataVAttrs.push(attr);
-                    }
-                }
-                for (const attr of dataVAttrs) {
-                    element.removeAttribute(attr);
-                }
+                    }]
+            });
+            // Используем готовый генератор
+            const { code } = generate(ast, { mode: 'module' });
+            // Извлекаем строку шаблона из кода (между return `...`)
+            const match = code.match(/return `([\s\S]*)`/);
+            if (match) {
+                // Возвращаем строку шаблона для SFC, а не HTML!
+                return match[1];
             }
-            return root.toString();
+            return template;
         }
         catch (error) {
-            console.error('Error parsing Vue template:', error);
+            console.error('Error parsing Vue template with AST:', error);
             return template;
         }
     }
