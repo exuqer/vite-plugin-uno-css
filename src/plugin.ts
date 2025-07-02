@@ -96,7 +96,7 @@ export function UnoCSSPlugin(options: PluginOptions = {}): Plugin {
       if (id.includes('node_modules') || id.startsWith('\0')) return null;
 
       if (id.endsWith('.css')) {
-        await cssProcessor.process(code, id, classMappingCache);
+        await cssProcessor.process(code, id, classMappingCache, allUnoClasses);
         return '';
       }
       // Обрабатываем только исходные .vue-файлы с <template>

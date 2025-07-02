@@ -182,22 +182,22 @@ export class CSSUtils {
             const unoClass = positionMap[trimmedValue];
             return unoClass ? [unoClass] : null;
         }
-        // background-image
-        if (property === 'background-image') {
-            if (trimmedValue.startsWith('url(')) {
+        // background и background-image
+        if ((property === 'background' || property === 'background-image')) {
+            // Ищем url(...) с кавычками или без
+            const urlMatch = trimmedValue.match(/url\(['"]?([^'")]+)['"]?\)/);
+            if (urlMatch) {
+                return [`bg-[url('${urlMatch[1]}')]`];
+            }
+            // Если это просто цвет, пробуем как цвет
+            if (/^#/.test(trimmedValue) || /^rgb|^hsl/.test(trimmedValue) || /^[a-zA-Z]+$/.test(trimmedValue)) {
                 return [`bg-[${trimmedValue}]`];
             }
-            else if (trimmedValue.startsWith('http')) {
-                return [`bg-[url(${trimmedValue})]`];
-            }
-            else {
-                return [`bg-[${trimmedValue}]`];
-            }
+            // Иначе не создаём класс
+            return null;
         }
-        // background-color
+        // background-color (только если это валидный цвет)
         if (property === 'background-color') {
-            if (/^-?\d+(\.\d+)?px$/.test(trimmedValue))
-                return [`bg-[${trimmedValue}]`];
             if (/^#/.test(trimmedValue))
                 return [`bg-[${trimmedValue}]`];
             if (/^rgb|^hsl/.test(trimmedValue)) {
@@ -206,7 +206,8 @@ export class CSSUtils {
             }
             if (/^[a-zA-Z]+$/.test(trimmedValue))
                 return [`bg-[${trimmedValue}]`];
-            return [`bg-[${trimmedValue}]`];
+            // Не цвет — не создаём класс
+            return null;
         }
         // color
         if (property === 'color') {
@@ -315,35 +316,31 @@ export class CSSUtils {
                 return [`border-[${trimmedValue}]`];
             return [`border-[${trimmedValue}]`];
         }
-        // width/height
+        // width/height с поддержкой calc() и 100%
         if (property === 'width') {
+            if (trimmedValue === '100')
+                return null;
+            if (trimmedValue === '100%')
+                return ['w-full'];
+            if (trimmedValue === '100vw')
+                return ['w-screen'];
+            if (/^calc\(.+\)$/.test(trimmedValue))
+                return [`w-[${trimmedValue}]`];
             if (/^-?\d+(\.\d+)?px$/.test(trimmedValue))
                 return [`w-[${trimmedValue}]`];
-            const unoWidthMap = {
-                '100%': 'w-full',
-                '100vw': 'w-screen',
-                'auto': 'w-auto',
-                '100px': 'w-100px',
-                '200px': 'w-200px',
-                '150px': 'w-150px',
-            };
-            if (unoWidthMap[trimmedValue])
-                return [unoWidthMap[trimmedValue]];
             return [`w-[${trimmedValue}]`];
         }
         if (property === 'height') {
+            if (trimmedValue === '100')
+                return null;
+            if (trimmedValue === '100%')
+                return ['h-full'];
+            if (trimmedValue === '100vh')
+                return ['h-screen'];
+            if (/^calc\(.+\)$/.test(trimmedValue))
+                return [`h-[${trimmedValue}]`];
             if (/^-?\d+(\.\d+)?px$/.test(trimmedValue))
                 return [`h-[${trimmedValue}]`];
-            const unoHeightMap = {
-                '100%': 'h-full',
-                '100vh': 'h-screen',
-                'auto': 'h-auto',
-                '100px': 'h-100px',
-                '200px': 'h-200px',
-                '150px': 'h-150px',
-            };
-            if (unoHeightMap[trimmedValue])
-                return [unoHeightMap[trimmedValue]];
             return [`h-[${trimmedValue}]`];
         }
         // margin/padding (шорткаты)
@@ -464,13 +461,18 @@ export class CSSUtils {
                     childValue = child.value;
                 }
                 else if (child.type === 'Dimension') {
-                    childValue = child.value + child.unit;
+                    if (child.unit === '%') {
+                        childValue = child.value + '%';
+                    }
+                    else {
+                        childValue = child.value + child.unit;
+                    }
                 }
                 else if (child.type === 'Hash') {
                     childValue = '#' + child.value;
                 }
                 else if (child.type === 'Function') {
-                    // Обработка функций типа url(), rgb(), hsl()
+                    // Обработка функций типа url(), rgb(), hsl(), calc()
                     if (/^(rgb|rgba|hsl|hsla)$/i.test(child.name)) {
                         // Собираем значения с запятыми
                         let args = [];
@@ -501,6 +503,54 @@ export class CSSUtils {
                         }
                         childValue = `${child.name}(${args.join(',')})`;
                     }
+                    else if (/^url$/i.test(child.name)) {
+                        // url(...) — сохраняем кавычки, если есть
+                        let urlArg = '';
+                        if (child.children && child.children.head) {
+                            const urlChild = child.children.head.data;
+                            if (urlChild.type === 'String') {
+                                urlArg = `"${urlChild.value}"`;
+                            }
+                            else if (urlChild.value) {
+                                urlArg = urlChild.value;
+                            }
+                        }
+                        childValue = `url(${urlArg})`;
+                    }
+                    else if (/^calc$/i.test(child.name)) {
+                        // calc(...) — собираем выражение с пробелами и операторами
+                        let funcStr = 'calc(';
+                        if (child.children) {
+                            let funcCurrent = child.children.head;
+                            while (funcCurrent) {
+                                const funcChild = funcCurrent.data;
+                                if (funcChild.type === 'String') {
+                                    funcStr += `"${funcChild.value}"`;
+                                }
+                                else if (funcChild.type === 'Number') {
+                                    funcStr += funcChild.value;
+                                }
+                                else if (funcChild.type === 'Dimension') {
+                                    funcStr += funcChild.value + funcChild.unit;
+                                }
+                                else if (funcChild.type === 'Hash') {
+                                    funcStr += '#' + funcChild.value;
+                                }
+                                else if (funcChild.type === 'Raw') {
+                                    funcStr += funcChild.value;
+                                }
+                                else if (funcChild.type === 'Identifier') {
+                                    funcStr += funcChild.name;
+                                }
+                                else if (funcChild.type === 'Operator') {
+                                    funcStr += ' ' + funcChild.value + ' ';
+                                }
+                                funcCurrent = funcCurrent.next;
+                            }
+                        }
+                        funcStr += ')';
+                        childValue = funcStr;
+                    }
                     else {
                         let funcStr = child.name + '(';
                         if (child.children) {
@@ -524,6 +574,9 @@ export class CSSUtils {
                                 }
                                 else if (funcChild.type === 'Identifier') {
                                     funcStr += funcChild.name;
+                                }
+                                else if (funcChild.type === 'Operator') {
+                                    funcStr += ' ' + funcChild.value + ' ';
                                 }
                                 funcCurrent = funcCurrent.next;
                             }
