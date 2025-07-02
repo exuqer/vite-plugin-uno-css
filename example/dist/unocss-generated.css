@@ -20,7 +20,6 @@
 .bg-\[\#4a90e2\]{--un-bg-opacity:1;background-color:rgb(74 144 226 / var(--un-bg-opacity));}
 .bg-\[\#d07f44\]{--un-bg-opacity:1;background-color:rgb(208 127 68 / var(--un-bg-opacity));}
 .bg-\[rosybrown\]{background-color:rosybrown;}
-.bg-\[url\(https\:\/\/picsum\.photos\/300\)\]{--un-url:url(https://picsum.photos/300);background-image:var(--un-url);}
 .p-\[10px\]{padding:10px;}
 .p-\[15px\]{padding:15px;}
 .text-center{text-align:center;}
