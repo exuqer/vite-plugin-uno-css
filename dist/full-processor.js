@@ -3,6 +3,29 @@ import * as cheerio from 'cheerio';
 import fs from 'fs/promises';
 import { parse as parseVue } from '@vue/compiler-sfc';
 import { CSSUtils } from './utils';
+// Вспомогательная функция для корректного разбиения UnoCSS-классов с arbitrary values
+function splitUnoClasses(str) {
+    const result = [];
+    let current = '';
+    let bracket = 0;
+    for (const char of str) {
+        if (char === '[')
+            bracket++;
+        if (char === ']')
+            bracket--;
+        if (char === ' ' && bracket === 0) {
+            if (current)
+                result.push(current);
+            current = '';
+        }
+        else {
+            current += char;
+        }
+    }
+    if (current)
+        result.push(current);
+    return result;
+}
 // Обработка .vue-файла: возвращает { html, unoClasses }
 export async function processVueFile(vuePath) {
     const src = await fs.readFile(vuePath, 'utf-8');
@@ -33,7 +56,7 @@ export async function processVueFile(vuePath) {
     const $ = cheerio.load(template, { xmlMode: false });
     $('[class]').each((_, el) => {
         const orig = $(el).attr('class');
-        const uno = orig.split(/\s+/).flatMap((cls) => classMap[cls] || []).filter(Boolean);
+        const uno = splitUnoClasses(orig).flatMap((cls) => classMap[cls] || []).filter(Boolean);
         if (uno.length > 0) {
             $(el).attr('class', uno.join(' '));
         }
@@ -86,8 +109,8 @@ export async function processAllSources({ htmlPath, cssPath }) {
     const usedClasses = new Set();
     $('[class]').each((_, el) => {
         const orig = $(el).attr('class');
-        orig.split(/\s+/).forEach((cls) => usedClasses.add(cls));
-        const uno = orig.split(/\s+/).flatMap((cls) => classMap[cls] || cls);
+        splitUnoClasses(orig).forEach((cls) => usedClasses.add(cls));
+        const uno = splitUnoClasses(orig).flatMap((cls) => classMap[cls] || cls);
         $(el).attr('class', uno.join(' '));
     });
     const htmlOut = $.html();
@@ -133,8 +156,8 @@ export async function processHtmlAndCssStrings(htmlRaw, cssRaw) {
     const usedClasses = new Set();
     $('[class]').each((_, el) => {
         const orig = $(el).attr('class');
-        orig.split(/\s+/).forEach((cls) => usedClasses.add(cls));
-        const uno = orig.split(/\s+/).flatMap((cls) => classMap[cls] || cls);
+        splitUnoClasses(orig).forEach((cls) => usedClasses.add(cls));
+        const uno = splitUnoClasses(orig).flatMap((cls) => classMap[cls] || cls);
         $(el).attr('class', uno.join(' '));
     });
     const htmlOut = $.html();

@@ -1,5 +1,24 @@
 import { parse } from 'node-html-parser';
 
+// Вспомогательная функция для корректного разбиения UnoCSS-классов с arbitrary values
+function splitUnoClasses(str: string): string[] {
+  const result = [];
+  let current = '';
+  let bracket = 0;
+  for (const char of str) {
+    if (char === '[') bracket++;
+    if (char === ']') bracket--;
+    if (char === ' ' && bracket === 0) {
+      if (current) result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  if (current) result.push(current);
+  return result;
+}
+
 export class HTMLProcessor {
   async process(code: string, id: string, classMappingCache: Map<string, string>): Promise<string> {
     try {
@@ -45,13 +64,13 @@ export class HTMLProcessor {
       for (const element of elements) {
         const classAttr = element.getAttribute('class');
         if (classAttr) {
-          const classes = classAttr.split(' ').filter(Boolean);
+          const classes = splitUnoClasses(classAttr).filter(Boolean);
           const processedClasses: string[] = [];
           
           for (const className of classes) {
             const unoClasses = classMappingCache.get(className);
             if (unoClasses) {
-              processedClasses.push(...unoClasses.split(' '));
+              processedClasses.push(...splitUnoClasses(unoClasses));
             } else {
               processedClasses.push(className);
             }

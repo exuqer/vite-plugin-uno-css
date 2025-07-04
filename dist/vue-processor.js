@@ -2,6 +2,29 @@ import { parse as parseSFC } from '@vue/compiler-sfc';
 // import { parse } from 'node-html-parser';
 import { parse as parseCSS, walk } from 'css-tree';
 import { CSSUtils } from './utils';
+// Вспомогательная функция для корректного разбиения UnoCSS-классов с arbitrary values
+function splitUnoClasses(str) {
+    const result = [];
+    let current = '';
+    let bracket = 0;
+    for (const char of str) {
+        if (char === '[')
+            bracket++;
+        if (char === ']')
+            bracket--;
+        if (char === ' ' && bracket === 0) {
+            if (current)
+                result.push(current);
+            current = '';
+        }
+        else {
+            current += char;
+        }
+    }
+    if (current)
+        result.push(current);
+    return result;
+}
 export class VueProcessor {
     async process(code, id, classMappingCache, allUnoClasses) {
         try {
@@ -18,7 +41,7 @@ export class VueProcessor {
             }
             if (allUnoClasses) {
                 for (const uno of classMappingCache.values()) {
-                    uno.split(' ').forEach(cls => allUnoClasses.add(cls));
+                    splitUnoClasses(uno).forEach(cls => allUnoClasses.add(cls));
                 }
             }
             // Новый способ: заменяем только <template>...</template> в исходном коде
@@ -90,11 +113,12 @@ export class VueProcessor {
     }
     async fallbackExtractClasses(styles, classMappingCache) {
         // Простой парсинг CSS для извлечения классов
-        const classRegex = /\.([a-zA-Z0-9_-]+)\s*\{([^}]+)\}/g;
+        const classRegex = /\.([a-zA-Z0-9_-]+)\s*\{([\s\S]*?)\}/g;
         let match;
         while ((match = classRegex.exec(styles)) !== null) {
             const className = match[1];
             const properties = match[2];
+            console.log('[vue-processor][fallback] class:', className, 'props:', properties);
             // Пропускаем scoped классы
             if (className.includes('data-v-')) {
                 continue;

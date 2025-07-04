@@ -17,9 +17,6 @@
 .rounded-\[4px\]{border-radius:4px;}
 .rounded-\[8px\]{border-radius:8px;}
 .border-solid{border-style:solid;}
-.bg-\[\#4a90e2\]{--un-bg-opacity:1;background-color:rgb(74 144 226 / var(--un-bg-opacity));}
-.bg-\[\#d07f44\]{--un-bg-opacity:1;background-color:rgb(208 127 68 / var(--un-bg-opacity));}
-.bg-\[rosybrown\]{background-color:rosybrown;}
 .p-\[10px\]{padding:10px;}
 .p-\[15px\]{padding:15px;}
 .text-center{text-align:center;}
@@ -30,3 +27,8 @@
 .text-\[white\]{color:white;}
 .font-bold{font-weight:700;}
 .font-semibold{font-weight:600;}
+.bg-\[\#4a90e2\]{background-color:#4a90e2;}
+.bg-\[\#d07f44\]{background-color:#d07f44;}
+.bg-\[rosybrown\]{background-color:rosybrown;}
+.bg-\[url\(https\:\/\/picsum\.photos\/200\)\]{background-image:url(https://picsum.photos/200);}
+.bg-\[url\(https\:\/\/picsum\.photos\/300\)\]{background-image:url(https://picsum.photos/300);}

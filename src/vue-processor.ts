@@ -4,6 +4,25 @@ import { parse as parseTemplateAST, transform, generate, NodeTypes, AttributeNod
 import { parse as parseCSS, walk } from 'css-tree';
 import { CSSUtils } from './utils';
 
+// Вспомогательная функция для корректного разбиения UnoCSS-классов с arbitrary values
+function splitUnoClasses(str: string): string[] {
+  const result = [];
+  let current = '';
+  let bracket = 0;
+  for (const char of str) {
+    if (char === '[') bracket++;
+    if (char === ']') bracket--;
+    if (char === ' ' && bracket === 0) {
+      if (current) result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  if (current) result.push(current);
+  return result;
+}
+
 export class VueProcessor {
   async process(code: string, id: string, classMappingCache: Map<string, string>, allUnoClasses?: Set<string>): Promise<string> {
     try {
@@ -20,7 +39,7 @@ export class VueProcessor {
       }
       if (allUnoClasses) {
         for (const uno of classMappingCache.values()) {
-          uno.split(' ').forEach(cls => allUnoClasses.add(cls));
+          splitUnoClasses(uno).forEach(cls => allUnoClasses.add(cls));
         }
       }
       // Новый способ: заменяем только <template>...</template> в исходном коде
@@ -38,8 +57,32 @@ export class VueProcessor {
   }
 
   private async processTemplate(template: string, classMappingCache: Map<string, string>): Promise<string> {
-    // Временно отключено для диагностики ошибок
-    return template;
+    // Парсим шаблон как AST
+    const ast = parseTemplateAST(template);
+    // Рекурсивно обходим AST и патчим классы
+    function patchNode(node: any) {
+      if (node.type === NodeTypes.ELEMENT) {
+        // Найти атрибут class
+        const classAttr = node.props.find((p: any) => p.type === NodeTypes.ATTRIBUTE && p.name === 'class') as AttributeNode | undefined;
+        if (classAttr && classAttr.value && classAttr.value.content) {
+          // Разбить на классы
+          const orig = classAttr.value.content;
+          const uno = orig.split(/\s+/)
+            .map(cls => classMappingCache.get(cls) || cls)
+            .join(' ');
+          classAttr.value.content = uno;
+        }
+      }
+      if (node.children) {
+        node.children.forEach(patchNode);
+      }
+    }
+    patchNode(ast);
+    // Генерируем новый шаблон
+    const { code } = generate(ast, { mode: 'module' });
+    // Извлекаем только строку шаблона из сгенерированного кода
+    const match = code.match(/return `([\s\S]*)`;/);
+    return match ? match[1] : template;
   }
 
   private async extractClassesFromStyles(styles: string, classMappingCache: Map<string, string>): Promise<void> {
@@ -105,13 +148,13 @@ export class VueProcessor {
 
   private async fallbackExtractClasses(styles: string, classMappingCache: Map<string, string>): Promise<void> {
     // Простой парсинг CSS для извлечения классов
-    const classRegex = /\.([a-zA-Z0-9_-]+)\s*\{([^}]+)\}/g;
+    const classRegex = /\.([a-zA-Z0-9_-]+)\s*\{([\s\S]*?)\}/g;
     let match;
     
     while ((match = classRegex.exec(styles)) !== null) {
       const className = match[1];
       const properties = match[2];
-      
+      console.log('[vue-processor][fallback] class:', className, 'props:', properties);
       // Пропускаем scoped классы
       if (className.includes('data-v-')) {
         continue;

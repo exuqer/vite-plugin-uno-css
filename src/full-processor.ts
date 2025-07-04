@@ -5,6 +5,25 @@ import path from 'path';
 import { parse as parseVue } from '@vue/compiler-sfc';
 import { CSSUtils } from './utils';
 
+// Вспомогательная функция для корректного разбиения UnoCSS-классов с arbitrary values
+function splitUnoClasses(str: string): string[] {
+  const result = [];
+  let current = '';
+  let bracket = 0;
+  for (const char of str) {
+    if (char === '[') bracket++;
+    if (char === ']') bracket--;
+    if (char === ' ' && bracket === 0) {
+      if (current) result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  if (current) result.push(current);
+  return result;
+}
+
 // Обработка .vue-файла: возвращает { html, unoClasses }
 export async function processVueFile(vuePath: string) {
   const src = await fs.readFile(vuePath, 'utf-8');
@@ -34,7 +53,7 @@ export async function processVueFile(vuePath: string) {
   const $ = cheerio.load(template, { xmlMode: false });
   $('[class]').each((_: any, el: any) => {
     const orig = $(el).attr('class')!;
-    const uno = orig.split(/\s+/).flatMap((cls: string) => classMap[cls] || []).filter(Boolean);
+    const uno = splitUnoClasses(orig).flatMap((cls: string) => classMap[cls] || []).filter(Boolean);
     if (uno.length > 0) {
       $(el).attr('class', uno.join(' '));
     } else {
@@ -85,8 +104,8 @@ export async function processAllSources({ htmlPath, cssPath }: { htmlPath: strin
   const usedClasses = new Set<string>();
   $('[class]').each((_: any, el: any) => {
     const orig = $(el).attr('class')!;
-    orig.split(/\s+/).forEach((cls: string) => usedClasses.add(cls));
-    const uno = orig.split(/\s+/).flatMap((cls: string) => classMap[cls] || cls);
+    splitUnoClasses(orig).forEach((cls: string) => usedClasses.add(cls));
+    const uno = splitUnoClasses(orig).flatMap((cls: string) => classMap[cls] || cls);
     $(el).attr('class', uno.join(' '));
   });
   const htmlOut = $.html();
@@ -133,8 +152,8 @@ export async function processHtmlAndCssStrings(htmlRaw: string, cssRaw: string) 
   const usedClasses = new Set<string>();
   $('[class]').each((_: any, el: any) => {
     const orig = $(el).attr('class')!;
-    orig.split(/\s+/).forEach((cls: string) => usedClasses.add(cls));
-    const uno = orig.split(/\s+/).flatMap((cls: string) => classMap[cls] || cls);
+    splitUnoClasses(orig).forEach((cls: string) => usedClasses.add(cls));
+    const uno = splitUnoClasses(orig).flatMap((cls: string) => classMap[cls] || cls);
     $(el).attr('class', uno.join(' '));
   });
   const htmlOut = $.html();

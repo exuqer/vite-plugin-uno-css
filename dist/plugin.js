@@ -45,6 +45,29 @@ function isUnoClass(cls) {
     // Можно доработать под ваши правила
     return /-|\[.*\]/.test(cls) && !/^[_a-zA-Z0-9]+(__|--)/.test(cls);
 }
+// Вспомогательная функция для корректного разбиения UnoCSS-классов с arbitrary values
+function splitUnoClasses(str) {
+    const result = [];
+    let current = '';
+    let bracket = 0;
+    for (const char of str) {
+        if (char === '[')
+            bracket++;
+        if (char === ']')
+            bracket--;
+        if (char === ' ' && bracket === 0) {
+            if (current)
+                result.push(current);
+            current = '';
+        }
+        else {
+            current += char;
+        }
+    }
+    if (current)
+        result.push(current);
+    return result;
+}
 export function UnoCSSPlugin(options = {}) {
     // Плагин работает только для сборки (vite build)
     const base = {
@@ -67,7 +90,7 @@ export function UnoCSSPlugin(options = {}) {
             if (id.includes('node_modules') || id.startsWith('\0'))
                 return null;
             if (id.endsWith('.css')) {
-                await cssProcessor.process(code, id, classMappingCache);
+                await cssProcessor.process(code, id, classMappingCache, allUnoClasses);
                 return '';
             }
             // Обрабатываем только исходные .vue-файлы с <template>
@@ -79,7 +102,7 @@ export function UnoCSSPlugin(options = {}) {
                     const root = parseHtml(`<root>${templateContent}</root>`);
                     root.querySelectorAll('[class]').forEach(el => {
                         const orig = el.getAttribute('class');
-                        const uno = orig.split(/\s+/)
+                        const uno = splitUnoClasses(orig)
                             .map((cls) => {
                             const mapped = classMappingCache.get(cls) || cls;
                             const normalized = normalizeArbitraryClass(mapped);
@@ -101,13 +124,8 @@ export function UnoCSSPlugin(options = {}) {
                 return processed;
             }
             if (id.endsWith('.html')) {
-                const root = parseHtml(code);
-                root.querySelectorAll('[class]').forEach(el => {
-                    const orig = el.getAttribute('class');
-                    const uno = orig.split(/\s+/).map((cls) => classMappingCache.get(cls) || cls).join(' ');
-                    el.setAttribute('class', uno);
-                });
-                return root.toString();
+                // Не обрабатываем HTML здесь, оставляем для transformIndexHtml
+                return null;
             }
             return null;
         },
@@ -116,24 +134,33 @@ export function UnoCSSPlugin(options = {}) {
         },
         async transformIndexHtml(html) {
             console.log('[vite-plugin-unocss-css] transformIndexHtml called');
+            console.log('[vite-plugin-unocss-css] ALL UNO CLASSES:', Array.from(allUnoClasses));
+            console.log('[vite-plugin-unocss-css] classMappingCache size:', classMappingCache.size);
+            console.log('[vite-plugin-unocss-css] classMappingCache keys:', Array.from(classMappingCache.keys()));
             // Заменяем кастомные классы на uno-классы
             const root = parseHtml(html);
             root.querySelectorAll('[class]').forEach(el => {
                 const orig = el.getAttribute('class');
-                const uno = orig.split(/\s+/)
+                console.log('[vite-plugin-unocss-css] Processing class:', orig);
+                const uno = splitUnoClasses(orig)
                     .map((cls) => {
-                    const mapped = classMappingCache.get(cls) || cls;
-                    const normalized = normalizeArbitraryClass(mapped);
+                    const mapped = classMappingCache.get(cls);
+                    if (!mapped) {
+                        console.warn('[vite-plugin-unocss-css] Класс не найден в classMappingCache:', cls, 'в исходном:', orig);
+                    }
+                    const normalized = normalizeArbitraryClass(mapped || cls);
+                    console.log('[vite-plugin-unocss-css] Mapped class:', cls, '->', normalized);
                     return isUnoClass(normalized) ? normalized : '';
                 })
                     .filter(Boolean)
                     .join(' ');
+                console.log('[vite-plugin-unocss-css] Final class:', uno);
                 el.setAttribute('class', uno);
             });
             // Собираем все классы из HTML
             const unoClassSet = new Set();
             root.querySelectorAll('[class]').forEach(el => {
-                el.getAttribute('class').split(/\s+/).forEach(cls => {
+                splitUnoClasses(el.getAttribute('class')).forEach((cls) => {
                     const normalized = normalizeArbitraryClass(cls);
                     if (isUnoClass(normalized))
                         unoClassSet.add(normalized);
@@ -150,7 +177,7 @@ export function UnoCSSPlugin(options = {}) {
                         const classRegex = /class\s*[:=]\s*["'`]([^"'`]+)["'`]/g;
                         let match;
                         while ((match = classRegex.exec(content))) {
-                            match[1].split(/\s+/).forEach(cls => {
+                            match[1] && splitUnoClasses(match[1]).forEach(cls => {
                                 const normalized = normalizeArbitraryClass(cls);
                                 if (isUnoClass(normalized))
                                     unoClassSet.add(normalized);
@@ -159,7 +186,7 @@ export function UnoCSSPlugin(options = {}) {
                         // Также ищем uno-классы в шаблонных строках
                         const tplRegex = /class:\s*["'`]([^"'`]+)["'`]/g;
                         while ((match = tplRegex.exec(content))) {
-                            match[1].split(/\s+/).forEach(cls => {
+                            match[1] && splitUnoClasses(match[1]).forEach(cls => {
                                 const normalized = normalizeArbitraryClass(cls);
                                 if (isUnoClass(normalized))
                                     unoClassSet.add(normalized);
@@ -175,7 +202,27 @@ export function UnoCSSPlugin(options = {}) {
             allUnoClasses.forEach(cls => unoClassSet.add(cls));
             const unoClassesArr = Array.from(unoClassSet);
             console.log('[vite-plugin-unocss-css] UnoCSS классы для генерации:', unoClassesArr);
-            const uno = createGenerator({ presets: [presetUno, presetAttributify, presetIcons] });
+            // Создаем UnoCSS генератор с кастомными правилами для background-image
+            const uno = createGenerator({
+                presets: [presetUno, presetAttributify, presetIcons],
+                rules: [
+                    // Кастомное правило для background-image с url() без кавычек
+                    [/^bg-\[url\(([^)]+)\)\]$/, ([, url]) => ({
+                            'background-image': `url(${url})`
+                        })],
+                    // Кастомное правило для background-image без url()
+                    [/^bg-\[([^\]]+)\]$/, ([, value]) => {
+                            if (value.startsWith("url(")) {
+                                return {
+                                    'background-image': value
+                                };
+                            }
+                            return {
+                                'background-color': value
+                            };
+                        }]
+                ]
+            });
             const { css } = await uno.generate(unoClassesArr.join(' '));
             // Собираем CSS в dist/unocss-generated.css текущего проекта
             const fsPath = path.resolve(process.cwd(), 'dist/unocss-generated.css');

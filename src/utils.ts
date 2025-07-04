@@ -193,16 +193,23 @@ export class CSSUtils {
 
     // background и background-image
     if ((property === 'background' || property === 'background-image')) {
+      // DEBUG LOG: всегда логируем значение
+      console.log('[uno-class-debug] background(-image) value:', value);
       // Ищем url(...) с кавычками или без
       const urlMatch = trimmedValue.match(/url\(['"]?([^'")]+)['"]?\)/);
       if (urlMatch) {
-        return [`bg-[url('${urlMatch[1]}')]`];
+        const unoClass = `bg-[url(${urlMatch[1]})]`;
+        console.log('[uno-class-debug] Detected url() ->', unoClass);
+        return [unoClass];
       }
       // Если это просто цвет, пробуем как цвет
       if (/^#/.test(trimmedValue) || /^rgb|^hsl/.test(trimmedValue) || /^[a-zA-Z]+$/.test(trimmedValue)) {
-        return [`bg-[${trimmedValue}]`];
+        const unoClass = `bg-[${trimmedValue}]`;
+        console.log('[uno-class-debug] Detected color ->', unoClass);
+        return [unoClass];
       }
       // Иначе не создаём класс
+      console.log('[uno-class-debug] No UnoCSS class generated for background(-image)');
       return null;
     }
 

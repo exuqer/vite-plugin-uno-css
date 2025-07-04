@@ -101,6 +101,7 @@ export class CSSProcessor {
             const property = match[1].trim();
             const value = match[2].trim();
             const unoClassArr = CSSUtils.convertPropertyToUnoClass(property, value);
+            console.log('[uno-class-debug]', property, value, unoClassArr);
             if (unoClassArr && unoClassArr.length > 0) {
                 unoClasses.push(...unoClassArr);
             }

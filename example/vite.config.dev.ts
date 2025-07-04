@@ -8,7 +8,7 @@ export default defineConfig({
     // unocssCSSPlugin не подключается в dev-режиме
   ],
   build: {
-    outDir: 'dist-example'
+    outDir: 'dist'
   },
   css: {
     modules: false
