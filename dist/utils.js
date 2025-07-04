@@ -193,6 +193,12 @@ export class CSSUtils {
                 console.log('[uno-class-debug] Detected url() ->', unoClass);
                 return [unoClass];
             }
+            // Если это просто URL без url() обертки (начинается с http/https)
+            if (/^https?:\/\//.test(trimmedValue)) {
+                const unoClass = `bg-[url(${trimmedValue})]`;
+                console.log('[uno-class-debug] Detected direct URL ->', unoClass);
+                return [unoClass];
+            }
             // Если это просто цвет, пробуем как цвет
             if (/^#/.test(trimmedValue) || /^rgb|^hsl/.test(trimmedValue) || /^[a-zA-Z]+$/.test(trimmedValue)) {
                 const unoClass = `bg-[${trimmedValue}]`;
