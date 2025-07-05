@@ -1,10 +1,2 @@
-import type { UnoGenerator } from '@unocss/core';
-export declare class CSSProcessor {
-    private uno;
-    constructor(uno: UnoGenerator);
-    process(code: string, id: string, classMappingCache: Map<string, string>, allUnoClasses?: Set<string>): Promise<string>;
-    private fallbackExtractClasses;
-    private regexExtractClasses;
-    private convertPropertiesStringToUnoClasses;
-}
+export declare function processCSS(code: string, id: string, classMappingCache: Map<string, string>, allUnoClasses?: Set<string>): Promise<string>;
 //# sourceMappingURL=css-processor.d.ts.map

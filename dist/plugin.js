@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { CSSProcessor } from './css-processor';
-import { VueProcessor } from './vue-processor';
+import { processCSS } from './css-processor';
+import { processVue } from './vue-processor';
 import { createGenerator } from '@unocss/core';
 import presetUno from '@unocss/preset-uno';
 import presetAttributify from '@unocss/preset-attributify';
@@ -49,23 +49,20 @@ export function UnoCSSPlugin() {
         apply: 'build',
     };
     const classMappingCache = new Map();
-    const cssProcessor = new CSSProcessor(null); // UnoGenerator будет позже
-    const vueProcessor = new VueProcessor();
     const allUnoClasses = new Set();
     return {
         ...base,
         async transform(code, id) {
-            console.log('PLUGIN:', id);
             // Не трогать node_modules и виртуальные файлы
             if (id.includes('node_modules') || id.startsWith('\0'))
                 return null;
             if (id.endsWith('.css')) {
-                await cssProcessor.process(code, id, classMappingCache, allUnoClasses);
+                await processCSS(code, id, classMappingCache, allUnoClasses);
                 return '';
             }
             // Обрабатываем только исходные .vue-файлы с <template>
             if (id.endsWith('.vue') && !id.includes('?') && code.includes('<template')) {
-                let processed = await vueProcessor.process(code, id, classMappingCache, allUnoClasses);
+                let processed = await processVue(code, id, classMappingCache, allUnoClasses);
                 // Заменяем кастомные классы на uno-классы только внутри <template>...</template> через парсер
                 processed = processed.replace(/(<template[^>]*>)([\s\S]*?)(<\/template>)/, (full, open, templateContent, close) => {
                     // Парсим только содержимое шаблона, без <html><head><body>
@@ -100,15 +97,10 @@ export function UnoCSSPlugin() {
             return null;
         },
         async transformIndexHtml(html) {
-            console.log('[vite-plugin-unocss-css] transformIndexHtml called');
-            console.log('[vite-plugin-unocss-css] ALL UNO CLASSES:', Array.from(allUnoClasses));
-            console.log('[vite-plugin-unocss-css] classMappingCache size:', classMappingCache.size);
-            console.log('[vite-plugin-unocss-css] classMappingCache keys:', Array.from(classMappingCache.keys()));
             // Заменяем кастомные классы на uno-классы
             const root = parseHtml(html);
             root.querySelectorAll('[class]').forEach(el => {
                 const orig = el.getAttribute('class');
-                console.log('[vite-plugin-unocss-css] Processing class:', orig);
                 const uno = splitUnoClasses(orig)
                     .map((cls) => {
                     const mapped = classMappingCache.get(cls);
@@ -116,12 +108,10 @@ export function UnoCSSPlugin() {
                         console.warn('[vite-plugin-unocss-css] Класс не найден в classMappingCache:', cls, 'в исходном:', orig);
                     }
                     const normalized = normalizeArbitraryClass(mapped || cls);
-                    console.log('[vite-plugin-unocss-css] Mapped class:', cls, '->', normalized);
                     return isUnoClass(normalized) ? normalized : '';
                 })
                     .filter(Boolean)
                     .join(' ');
-                console.log('[vite-plugin-unocss-css] Final class:', uno);
                 el.setAttribute('class', uno);
             });
             // Собираем все классы из HTML
@@ -168,7 +158,6 @@ export function UnoCSSPlugin() {
             // После сбора unoClassSet из HTML и JS:
             allUnoClasses.forEach(cls => unoClassSet.add(cls));
             const unoClassesArr = Array.from(unoClassSet);
-            console.log('[vite-plugin-unocss-css] UnoCSS классы для генерации:', unoClassesArr);
             // Создаем UnoCSS генератор с кастомными правилами для background-image
             const uno = createGenerator({
                 presets: [presetUno, presetAttributify, presetIcons],
@@ -196,7 +185,6 @@ export function UnoCSSPlugin() {
             try {
                 await fs.mkdir(path.dirname(fsPath), { recursive: true });
                 await fs.writeFile(fsPath, css, 'utf8');
-                console.log('[vite-plugin-unocss-css] CSS written to', fsPath);
             }
             catch (e) {
                 console.error('[vite-plugin-unocss-css] Failed to write CSS:', e);
