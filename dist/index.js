@@ -1,6 +1,6 @@
 import { UnoCSSPlugin } from './plugin';
-export default function unocssCSSPlugin(options) {
-    return UnoCSSPlugin(options);
+export default function unocssCSSPlugin() {
+    return UnoCSSPlugin();
 }
 export { UnoCSSPlugin };
 //# sourceMappingURL=index.js.map

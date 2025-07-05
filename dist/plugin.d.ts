@@ -1,11 +1,3 @@
 import type { Plugin } from 'vite';
-interface PluginOptions {
-    presets?: any[];
-    theme?: any;
-    shortcuts?: any;
-    rules?: any[];
-    dev?: boolean;
-}
-export declare function UnoCSSPlugin(options?: PluginOptions): Plugin;
-export {};
+export declare function UnoCSSPlugin(): Plugin;
 //# sourceMappingURL=plugin.d.ts.map

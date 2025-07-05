@@ -1,4 +1,3 @@
-import { walk } from 'css-tree';
 import { CSSUtils } from './utils';
 export class CSSProcessor {
     constructor(uno) {
@@ -18,51 +17,6 @@ export class CSSProcessor {
             console.error('Error processing CSS:', error);
             return code;
         }
-    }
-    async extractClassesFromCSS(ast, classMappingCache) {
-        console.log(`[css-processor] Starting to extract classes from CSS AST`);
-        walk(ast, {
-            visit: 'Rule',
-            enter: async (node) => {
-                if (node.type === 'Rule') {
-                    console.log(`[css-processor] Processing rule:`, node);
-                    await this.processRule(node, classMappingCache);
-                }
-            }
-        });
-    }
-    async processRule(rule, classMappingCache) {
-        const selectors = CSSUtils.extractSelectors(rule.prelude);
-        const properties = CSSUtils.extractProperties(rule.block);
-        console.log(`[css-processor] Found selectors:`, selectors);
-        console.log(`[css-processor] Found properties:`, properties.length);
-        if (!selectors.length || !properties.length) {
-            return;
-        }
-        for (const selector of selectors) {
-            const className = CSSUtils.extractClassName(selector);
-            console.log(`[css-processor] Extracted className:`, className);
-            if (className) {
-                const unoClasses = await this.convertPropertiesToUnoClasses(properties);
-                console.log(`[css-processor] Converted to uno classes:`, unoClasses);
-                if (unoClasses.length > 0) {
-                    classMappingCache.set(className, unoClasses.join(' '));
-                    console.log(`[css-processor] Mapped ${className} -> ${unoClasses.join(' ')}`);
-                }
-            }
-        }
-    }
-    async convertPropertiesToUnoClasses(properties) {
-        const unoClasses = [];
-        for (const property of properties) {
-            const propertyName = property.property;
-            const propertyValue = CSSUtils.propertyValueToString(property.value);
-            const unoClassArr = CSSUtils.convertPropertyToUnoClass(propertyName, propertyValue);
-            if (unoClassArr && unoClassArr.length > 0) {
-                unoClasses.push(...unoClassArr);
-            }
-        }
-        return unoClasses;
     }
     async fallbackExtractClasses(css, classMappingCache, allUnoClasses) {
         // Всегда используем RegExp для извлечения классов

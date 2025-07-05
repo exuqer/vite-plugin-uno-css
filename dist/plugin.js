@@ -2,38 +2,11 @@ import fs from 'fs/promises';
 import path from 'path';
 import { CSSProcessor } from './css-processor';
 import { VueProcessor } from './vue-processor';
-import { HTMLProcessor } from './html-processor';
 import { createGenerator } from '@unocss/core';
 import presetUno from '@unocss/preset-uno';
 import presetAttributify from '@unocss/preset-attributify';
 import presetIcons from '@unocss/preset-icons';
 import { parse as parseHtml } from 'node-html-parser';
-// Вспомогательная функция для сбора uno-классов из HTML
-function extractUnoClassesFromHtml(html) {
-    const classSet = new Set();
-    const classRegex = /class\s*=\s*["']([^"']+)["']/g;
-    let match;
-    while ((match = classRegex.exec(html))) {
-        match[1].split(/\s+/).forEach(cls => classSet.add(cls));
-    }
-    return Array.from(classSet);
-}
-// Вспомогательная функция для сбора uno-классов из JS
-function extractUnoClassesFromJs(js) {
-    const classSet = new Set();
-    // Примитивная регулярка для uno-классов (можно доработать)
-    const unoRegex = /['"]([\w-:\[\]#\/.%]+)['"]/g;
-    let match;
-    while ((match = unoRegex.exec(js))) {
-        if (/^(bg-|text-|m-|p-|w-|h-|color-|font-|rounded-|items-|justify-|flex|border-|shadow|opacity|z-|gap-|grid-|col-|row-|order-|self-|content-|leading-|tracking-|align-|object-|overflow-|cursor-|select-|pointer-events-|transition|duration|ease|delay|animate|aspect-|top|right|bottom|left|visible|float|clear|resize|list|appearance|outline|filter|backdrop|blend|box|content|writing|whitespace|break|underline|decoration|indent|tab|caret|stroke|fill|scale|rotate|translate|skew)/.test(match[1])) {
-            classSet.add(match[1]);
-        }
-    }
-    return Array.from(classSet);
-}
-function isAsset(file) {
-    return !!file && typeof file === 'object' && file.type === 'asset';
-}
 // Вспомогательная функция для преобразования классов с числовыми суффиксами в arbitrary values UnoCSS
 function normalizeArbitraryClass(cls) {
     // Преобразуем w-150px -> w-[150px], rounded-8px -> rounded-[8px], и т.п.
@@ -68,7 +41,7 @@ function splitUnoClasses(str) {
         result.push(current);
     return result;
 }
-export function UnoCSSPlugin(options = {}) {
+export function UnoCSSPlugin() {
     // Плагин работает только для сборки (vite build)
     const base = {
         name: 'vite-plugin-unocss-css',
@@ -78,10 +51,7 @@ export function UnoCSSPlugin(options = {}) {
     const classMappingCache = new Map();
     const cssProcessor = new CSSProcessor(null); // UnoGenerator будет позже
     const vueProcessor = new VueProcessor();
-    const htmlProcessor = new HTMLProcessor();
     const allUnoClasses = new Set();
-    let unoCssHtml = '';
-    let unoCssRaw = '';
     return {
         ...base,
         async transform(code, id) {
@@ -128,9 +98,6 @@ export function UnoCSSPlugin(options = {}) {
                 return null;
             }
             return null;
-        },
-        async generateBundle(_options, bundle) {
-            // UnoCSS CSS generation is now handled in transformIndexHtml
         },
         async transformIndexHtml(html) {
             console.log('[vite-plugin-unocss-css] transformIndexHtml called');

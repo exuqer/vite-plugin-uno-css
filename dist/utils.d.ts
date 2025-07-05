@@ -1,7 +1,3 @@
-export interface UnoCSSMapping {
-    [key: string]: string;
-}
-export declare const UNO_PROPERTY_MAP: UnoCSSMapping;
 export declare class CSSUtils {
     /**
      * Преобразует CSS свойство в UnoCSS класс

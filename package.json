@@ -18,12 +18,8 @@
     "test": "bun test"
   },
   "devDependencies": {
-    "@types/cheerio": "^1.0.0",
     "@types/css-tree": "^2.3.10",
-    "@types/glob": "^8.1.0",
     "@types/node": "^20.0.0",
-    "node-html-parser": "^7.0.1",
-    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
   "dependencies": {
@@ -31,17 +27,10 @@
     "@unocss/preset-attributify": "^0.58.0",
     "@unocss/preset-icons": "^0.58.0",
     "@unocss/preset-uno": "^0.58.0",
-    "@vue/compiler-core": "^3.5.17",
     "@vue/compiler-dom": "^3.5.17",
     "@vue/compiler-sfc": "^3.5.17",
-    "@vue/shared": "^3.5.17",
-    "cheerio": "^1.1.0",
     "css-tree": "^2.3.0",
-    "cssnano": "^6.0.3",
-    "node-html-parser": "^7.0.1",
-    "postcss": "^8.4.35",
-    "postcss-selector-parser": "^6.0.13",
-    "postcss-value-parser": "^4.2.0"
+    "node-html-parser": "^7.0.1"
   },
   "peerDependencies": {
     "vite": "^5.0.0"

@@ -1,27 +1,7 @@
 import { parse as parseSFC } from '@vue/compiler-sfc';
-import { parse as parseTemplateAST, transform, generate, NodeTypes, AttributeNode } from '@vue/compiler-dom';
-// import { parse } from 'node-html-parser';
+import { parse as parseTemplateAST, generate, NodeTypes, AttributeNode } from '@vue/compiler-dom';
 import { parse as parseCSS, walk } from 'css-tree';
 import { CSSUtils } from './utils';
-
-// Вспомогательная функция для корректного разбиения UnoCSS-классов с arbitrary values
-function splitUnoClasses(str: string): string[] {
-  const result = [];
-  let current = '';
-  let bracket = 0;
-  for (const char of str) {
-    if (char === '[') bracket++;
-    if (char === ']') bracket--;
-    if (char === ' ' && bracket === 0) {
-      if (current) result.push(current);
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  if (current) result.push(current);
-  return result;
-}
 
 export class VueProcessor {
   async process(code: string, id: string, classMappingCache: Map<string, string>, allUnoClasses?: Set<string>): Promise<string> {
